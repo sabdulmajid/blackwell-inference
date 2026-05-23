@@ -1,0 +1,21 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.venv/
+venv/
+external/
+
+# Generated artifacts. Keep the public index/placeholders, but do not publish
+# machine-specific raw logs, GPU UUIDs, process IDs, cache paths, or local paths.
+results/**
+!results/
+!results/.gitkeep
+!results/README.md
+!results/benchmarks/
+!results/benchmarks/.gitkeep
+!results/env/
+!results/env/.gitkeep
+!results/failures/
+!results/failures/.gitkeep
+!results/gpu_runs/
+!results/gpu_runs/.gitkeep
