@@ -1,195 +1,155 @@
 # blackwell-inference
 
-`blackwell-inference` is a GPU-safe investigation and benchmark harness for
-NVIDIA RTX PRO 6000 Blackwell / SM120 inference systems.
+`blackwell-inference` is an ML systems investigation into inference behavior on
+NVIDIA RTX PRO 6000 Blackwell / SM120 GPUs, focused on the places where modern
+serving stacks make hardware-specific decisions that are easy to get wrong.
 
-The project is focused on a narrow, upstream-relevant question:
+The project studies two upstream-relevant problems:
 
-> When new workstation Blackwell GPUs appear before the inference software stack
-> has fully caught up, how do we prove whether vLLM and SGLang are selecting the
-> right low-precision kernels, falling back safely, and producing reproducible
-> evidence?
+- **vLLM FP4 / MXFP4 / NVFP4 backend selection on SM120**
+- **SGLang FP8 attention, GDN linear-attention, and GEMM backend behavior on RTX
+  PRO Blackwell**
 
-This is not a speed-chart repository yet. It is a reproducibility, safety, and
-upstream-discipline repository: every claim must point to an artifact, a test, a
-source map, or an explicit blocker.
+The goal is not to publish premature benchmark numbers. The goal is to build a
+disciplined evidence trail: environment metadata, contention state, exact
+commands, raw logs, backend-selection traces, correctness checks, and
+maintainer-readable issue or patch artifacts.
 
-## Problem Statement
+## Why This Matters
 
-Modern inference stacks choose among many hardware-specific backends:
-FlashInfer, CUTLASS, Triton, Marlin, FP8 GEMM paths, fused MoE kernels, and
-attention variants. On RTX PRO 6000 Blackwell / SM120, backend selection is
-especially easy to get wrong because workstation Blackwell is not automatically
-equivalent to datacenter Blackwell.
+Inference frameworks increasingly route work through specialized kernels:
+FlashInfer, CUTLASS, Triton, Marlin, TensorRT-LLM-style paths, fused MoE kernels,
+and FP8/FP4 GEMM implementations. Those paths often depend on compute
+capability, CUDA version, shared-memory limits, library availability, model
+format, and explicit runtime flags.
 
-This repo tracks two concrete issues:
+RTX PRO 6000 Blackwell is a workstation Blackwell GPU with SM120. It should not
+be treated casually as identical to datacenter Blackwell. A backend that is
+valid on one Blackwell part may be unavailable, slower, or unsafe on another.
+This repository exists to turn that ambiguity into reproducible evidence.
 
-1. **vLLM SM120 FP4 / MXFP4 / NVFP4 backend selection**
-   - Public anchor: `vllm-project/vllm#31085`
-   - Focus: whether SM120 selects a native low-precision backend or falls back
-     to Marlin, and whether that behavior is correct and clearly logged.
+## Investigation Tracks
 
-2. **SGLang RTX PRO Blackwell FP8 attention/backend/shared-memory behavior**
-   - Public anchor: `sgl-project/sglang#16816`
-   - Focus: whether SGLang chooses safe attention, GDN linear-attention, and
-     FP8 GEMM backends on RTX PRO Blackwell without over-assuming shared-memory
-     limits.
+### vLLM: SM120 FP4 / MXFP4 / NVFP4
 
-## What This Repo Contains
+Public anchor: `vllm-project/vllm#31085`
 
-- GPU contention guardrails:
-  - `scripts/gpu_guard.py`
-  - `scripts/run_with_gpu_lock.py`
-- Environment and reproducibility tools:
-  - `scripts/verify_blackwell.py`
-  - `scripts/collect_versions.py`
-  - `scripts/check_reproducibility.py`
-  - `scripts/archive_results.py`
-- OpenAI-compatible serving benchmark client:
-  - `benchmarks/serve_bench.py`
-  - `benchmarks/summarize_results.py`
-- Minimal repro wrappers:
-  - `repros/vllm_mxfp4_sm120/`
-  - `repros/sglang_attention_backend_sm120/`
-- Upstream-ready investigation artifacts:
-  - `upstream/vllm/issue_or_pr_draft.md`
-  - `upstream/vllm/patch_plan.md`
-  - `upstream/sglang/issue_or_pr_draft.md`
-  - `upstream/sglang/patch_plan.md`
+The investigation asks:
 
-## Current Findings
+- Which low-precision backend does vLLM choose on SM120?
+- When does it fall back to Marlin or emulation?
+- Are fallback reasons visible enough for users and maintainers?
+- Is an SM120 native path correct, available, and safe to select automatically?
 
-These are the only findings currently supported by saved local evidence and
-tests:
+Current source audit:
 
-- Current upstream source has been sparsely checked out and inspected at:
-  - vLLM `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
-  - SGLang `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
-- vLLM current `main` already contains an explicit SM12x NVFP4 FlashInfer B12x
-  MoE expert and SM120-gated kernel test. The remaining question is when that
-  path is selected, why it falls back, and whether runtime behavior is correct.
-- SGLang current `main` already contains SM120 capability helpers, SM120 Triton
-  attention block sizing, and an SM120 FP8 GEMM auto fallback to Triton. The
-  remaining question is which full-attention, GDN linear-attention, and FP8 GEMM
-  paths are actually selected at runtime.
-- The harness can collect environment metadata without initializing CUDA by
-  default.
-- GPU-consuming commands are designed to run through a per-GPU lock wrapper that
-  records selected physical GPU IDs and before/after GPU state.
-- The benchmark client can produce dry-run JSONL and summaries, and the
-  summarizer marks dry-run, contended, low-sample, approximate-token, and
-  unlocked rows as non-headline evidence.
+- Current vLLM upstream inspected at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`.
+- Current upstream already contains an explicit SM12x NVFP4 FlashInfer B12x MoE
+  expert and an SM120-gated kernel test.
 - Installed vLLM `0.12.0` static selector simulation returns `MARLIN` for mocked
-  SM120 MXFP4 scenarios. This is source-level evidence only, not runtime backend
-  proof.
-- Local SM120 CUDA device metadata was collected under the lock wrapper in a
-  prior run. SGLang runtime evidence is still blocked because SGLang is not
-  installed in the current environment.
-- No valid real serving benchmark result exists yet. No speedup, throughput,
-  correctness, or runtime backend-selection claim is made.
+  SM120 MXFP4 scenarios. That is source-level evidence only, not runtime proof.
 
-Generated raw results are intentionally not committed because they can contain
-machine-specific paths, GPU UUIDs, process IDs, and other local metadata. The
-public result index is `results/README.md`; local evidence tracking is described
-in `docs/evidence_ledger.md`.
+Current conclusion: the next useful vLLM contribution is likely diagnostics and
+selector coverage first, not a broad capability-widening patch.
 
-## Reproducibility
+### SGLang: FP8 Attention And Shared-Memory Behavior
 
-Use a repo-local virtual environment. Do not rely on the current shell's global
-or private Python environment.
+Public anchor: `sgl-project/sglang#16816`
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip wheel
-python -m pip install -r requirements.txt
+The investigation asks:
 
-python scripts/collect_versions.py --out results/env/versions.json
-python scripts/check_reproducibility.py --out results/env/reproducibility_check.json
-pytest -q
-```
+- Which full-attention backend is selected on SM120?
+- Which GDN linear-attention decode and prefill paths are selected?
+- Does FP8 GEMM dispatch choose a supported implementation?
+- If Triton fails, does the error identify the selected path and requested
+  shared-memory shape clearly enough?
 
-Detailed setup and dependency notes:
+Current source audit:
 
-- `docs/reproducibility.md`
-- `docs/dependency_matrix.md`
-- `docs/model_access_plan.md`
-- `docs/external_repo_setup.md`
+- Current SGLang upstream inspected at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`.
+- Current upstream already contains SM120 capability helpers, SM120 Triton
+  attention block sizing, and an SM120 FP8 GEMM auto fallback to Triton.
+- SGLang is not installed in the current local Python environment, so no local
+  SGLang runtime backend claim is made yet.
 
-## GPU Safety Rule
+Current conclusion: the next useful SGLang contribution is precise runtime
+diagnostics around selected full-attention, GDN decode, GDN prefill, and FP8 GEMM
+paths before changing fallback behavior.
 
-Every command that can initialize CUDA, allocate GPU memory, start a model
-server, or run inference must go through:
+## Evidence So Far
 
-```bash
-python scripts/run_with_gpu_lock.py --gpus 0 --min-free-gb 70 --wait --label <label> -- <command>
-```
+Supported by local artifacts and tests:
 
-Before any real GPU run:
+- The harness records GPU status, active GPU processes, selected physical GPU
+  IDs, and before/after state for GPU-affecting commands.
+- Environment collection works without initializing CUDA by default.
+- A locked CUDA metadata probe previously confirmed local PyTorch sees an RTX
+  PRO 6000 Blackwell GPU with compute capability `(12, 0)`.
+- Benchmark dry-runs produce raw JSONL and summaries, and are explicitly marked
+  as non-headline evidence.
+- Current vLLM and SGLang upstream sources have been inspected in clean sparse
+  checkouts.
+- Lightweight test suite passes: `29 passed, 1 skipped`.
 
-```bash
-python scripts/gpu_guard.py status
-python scripts/gpu_guard.py check --gpus 0 --min-free-gb 70
-```
+Not yet claimed:
 
-The project does not kill, renice, suspend, or otherwise interfere with other
-users' GPU processes. Contended runs are excluded from headline metrics.
+- no valid real serving benchmark result,
+- no throughput, latency, speedup, or regression claim,
+- no vLLM runtime backend-selection proof on SM120,
+- no SGLang runtime backend-selection proof on SM120,
+- no upstream PR-ready behavior-changing patch.
 
-## Dry-Run Validation
+Detailed evidence ledger: `docs/evidence_ledger.md`
 
-Dry-run path, no server and no model download:
+## Repository Shape
 
-```bash
-python benchmarks/serve_bench.py \
-  --dry-run \
-  --framework vllm \
-  --model hf-internal-testing/tiny-random-gpt2 \
-  --out results/benchmarks/repro_dry_run.jsonl
+The repo is organized around evidence and upstream readiness:
 
-python benchmarks/summarize_results.py \
-  --results results/benchmarks \
-  --out results/benchmarks/summary.csv \
-  --markdown-out results/benchmarks/summary.md
-```
+- `scripts/` contains safety, environment, version, archive, and GPU-wrapper
+  utilities.
+- `benchmarks/` contains an OpenAI-compatible benchmark client and summarizer.
+- `repros/` contains minimal vLLM and SGLang repro wrappers.
+- `docs/` contains the evidence ledger, technical context, benchmark protocol,
+  dependency notes, source audit, and failure log.
+- `upstream/` contains issue drafts, patch plans, and diff summaries for vLLM
+  and SGLang.
+- `results/` is for generated local artifacts. Large or machine-specific raw
+  outputs are intentionally not committed.
 
-Dry runs validate schema only. They are not benchmark results.
+## Current State
 
-## Upstream Patch Discipline
+This is a serious scaffold and investigation repo, not a finished benchmark
+paper. The important work completed so far is:
 
-Patch plans are intentionally conservative:
-
-- vLLM: start with diagnostics and selector tests; do not broadly widen SM100
-  checks to include SM120 without runtime evidence.
-- SGLang: keep full-attention, GDN linear-attention, and FP8 GEMM changes
-  separate; do not hardcode local shared-memory assumptions.
-
-Current patch planning files:
-
-- `upstream/vllm/patch_plan.md`
-- `upstream/vllm/diff_summary.md`
-- `upstream/sglang/patch_plan.md`
-- `upstream/sglang/diff_summary.md`
-- `docs/upstream_pr_protocol.md`
-
-## Roadmap
-
-1. Create clean external source checkouts for vLLM and SGLang.
-2. Run one valid, uncontended, one-GPU tiny-model smoke test.
-3. Capture real vLLM backend-selection logs on SM120.
-4. Install SGLang in an isolated environment and capture backend logs.
-5. Add targeted upstream diagnostics/tests.
-6. Run only minimal, evidence-driven target repros.
-7. Publish upstream issue updates or PRs when runtime evidence is sufficient.
-
-## Current Status
-
-The repo is ready as a public scaffold and investigation harness. It is not yet
-a completed benchmark report and not yet an upstream patch submission.
+1. GPU-safe execution policy and lock-wrapper infrastructure.
+2. Environment and dependency capture.
+3. Benchmark schema and dry-run validation.
+4. vLLM and SGLang source-path maps at current upstream commits.
+5. Conservative upstream patch plans that separate confirmed facts from
+   hypotheses.
 
 The most important blockers are:
 
-- no valid real serving benchmark yet,
-- external vLLM/SGLang source checkouts are local only and intentionally ignored,
-- SGLang is not installed in the current Python environment,
-- no large target-model download/use approved,
-- no initial upstream PR-ready patch until runtime evidence is collected.
+- a clean one-GPU runtime window,
+- a tiny real model-serving smoke test,
+- local SGLang runtime setup in an isolated environment,
+- real backend-selection logs,
+- correctness checks before any performance comparison.
+
+## Next Milestones
+
+1. Run one valid, uncontended, one-GPU smoke test.
+2. Capture vLLM SM120 backend-selection logs with the smallest viable model.
+3. Install or check out SGLang in an isolated environment and capture equivalent
+   backend logs.
+4. Add targeted upstream diagnostics or selector tests.
+5. Run only the minimal target repros needed to support an issue update or PR.
+6. Publish upstream artifacts once runtime evidence is sufficient.
+
+## Project Standard
+
+No claim without evidence. A result is only treated as real if it has saved raw
+artifacts, environment metadata, GPU contention metadata, and a clear validity
+label.
