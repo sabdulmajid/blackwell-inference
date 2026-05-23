@@ -1,15 +1,15 @@
 # vLLM Diff Summary
 
-Status: no external vLLM checkout exists and no upstream source diff was created
-in this pass.
+Status: a clean external vLLM checkout exists, but no upstream source diff was
+created in this pass.
 
 ## External Repo
 
 - Path: `external/vllm`
-- Exists: no
-- Local branch: none
-- Local commit: none
-- Local dirty status: not applicable
+- Exists: yes
+- Local branch: detached HEAD
+- Local commit: `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+- Local dirty status: clean
 - Diff stat: none
 
 ## Intended Branch

@@ -2,10 +2,39 @@
 
 Audit timestamp: `2026-05-20T10:31:55Z`
 
+Latest source-audit update: `2026-05-23T15:04Z`
+
 Scope: post-queue audit after first-pass setup, controlled smoke, real-GPU smoke
 attempt, vLLM deep dive, SGLang deep dive, and benchmark-matrix ramp-up. No
 new GPU-heavy workload, model download, server launch, or two-GPU command was
 run during this audit.
+
+## 2026-05-23 Source-Audit Update
+
+This update cloned sparse, ignored external source trees for current-upstream
+inspection only. It did not run GPU kernels, download models, start servers, or
+modify upstream source.
+
+| Artifact | Type | Command / source | Framework | GPU IDs | Validity | Supports | Does not support |
+|---|---|---|---|---|---|---|---|
+| `docs/current_upstream_source_audit.md` | doc/source-audit | sparse source inspection under `external/vllm` and `external/sglang` | vLLM/SGLang | none | valid source evidence | Current upstream codepath map and revised patch direction | Runtime backend selection, correctness, performance |
+| `external/vllm` | external-source | sparse clone of `https://github.com/vllm-project/vllm.git` | vLLM | none | clean local source input | Source inspected at `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e` | Any local patch or runtime behavior |
+| `external/sglang` | external-source | sparse clone of `https://github.com/sgl-project/sglang.git` | SGLang | none | clean local source input | Source inspected at `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae` | Any local patch or runtime behavior |
+| `results/gpu_status/impact_resume_status.json` | gpu-status | `python scripts/gpu_guard.py status --out results/gpu_status/impact_resume_status.json` | harness | none | contended status evidence | Active Python work was present on both GPUs, so no GPU smoke was attempted | Permission to run a benchmark |
+
+New source-supported claims:
+
+- vLLM current `main` has an explicit SM12x NVFP4 FlashInfer B12x MoE expert,
+  an SM120-gated kernel test, and an explicit `flashinfer_b12x` backend option.
+- SGLang current `main` has explicit SM120 capability helpers, SM120 Triton
+  extend-attention block sizing for smaller workstation shared-memory limits,
+  and an SM120 FP8 GEMM auto fallback to Triton.
+
+Still not proven:
+
+- any real vLLM or SGLang backend selected on this machine;
+- any correctness, latency, throughput, speedup, or regression;
+- whether current upstream already resolves the original runtime issue.
 
 ## Required Audit Commands
 
@@ -13,16 +42,16 @@ run during this audit.
 |---|---|---|
 | `pwd` | repo root (`blackwell-inference`) | terminal output |
 | `git status --short` | dirty/untracked working tree; all project files are untracked | terminal output |
-| `git log --oneline -5` | failed because branch `main` has no commits | terminal output |
+| `git log --oneline -5` | historical audit result: failed because branch `main` had no commits at that time | terminal output |
 | `find results -maxdepth 4 -type f \| sort \| sed -n '1,200p'` | listed current result artifacts | terminal output |
 | `python scripts/gpu_guard.py status --out results/gpu_status/post_queue_audit_status.json` | completed; both GPUs had active PID `2999453` | `results/gpu_status/post_queue_audit_status.json` |
 | `pytest -q` | passed: `26 passed in 7.22s` | `results/tests/post_queue_audit_pytest.txt` |
 
 ## Current Repository State
 
-- Current commit SHA: none. `git log --oneline -5` reports that branch `main`
-  has no commits yet.
-- Working tree: dirty. `git status --short` shows project files are untracked.
+- Current pushed baseline commit SHA: `c55174365f7ce689418f2dbf77849657d76c7470`.
+- Working tree after the source-audit pass contains documentation updates that
+  should be committed after tests pass.
 - Framework packages observed in environment metadata:
   - vLLM: `0.12.0`
   - SGLang: not installed
@@ -30,11 +59,10 @@ run during this audit.
   - Triton: `3.5.0`
   - FlashInfer: `0.5.3`
 - External source trees:
-  - `external/vllm`: absent
-  - `external/sglang`: absent
-- Remote patch targets observed during the upstream patch-discipline pass:
-  - vLLM `main`: `87e31455b056c6ce59bf5dcb3c622155431851db`
-  - SGLang `main`: `1bd4f94598a621cf5e8c27686311e92134e9edb0`
+  - `external/vllm`: clean sparse checkout at
+    `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+  - `external/sglang`: clean sparse checkout at
+    `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
 
 ## Artifact Ledger
 
@@ -88,10 +116,10 @@ run during this audit.
 | `results/repros/sglang_attention_backend_sm120/sglang_flashinfer_decode_dry_run_20260520T101901Z/status.txt` | repro | same as above | `2026-05-20T10:19:01Z` | SGLang | none | dry-run | Dry-run status | Runtime success |
 | `upstream/vllm/issue_or_pr_draft.md` | upstream-draft | documentation edit | current | vLLM | none | partially supported draft | Maintainer-readable issue-update skeleton grounded in static probe/codepath map | PR readiness, runtime behavior |
 | `upstream/vllm/patch_plan.md` | upstream-draft | documentation edit | current | vLLM | none | valid plan, not evidence of a fix | Minimal diagnostics/test-first patch plan and external repo status | Runtime backend behavior or PR readiness |
-| `upstream/vllm/diff_summary.md` | upstream-draft | documentation edit | current | vLLM | none | valid no-diff summary | Confirms no external vLLM checkout/diff exists yet | Patch correctness |
+| `upstream/vllm/diff_summary.md` | upstream-draft | documentation edit | current | vLLM | none | valid no-diff summary | Confirms clean external vLLM checkout with no source diff | Patch correctness |
 | `upstream/sglang/issue_or_pr_draft.md` | upstream-draft | documentation edit | current | SGLang | none | partially supported draft | Maintainer-readable investigation skeleton grounded in source map and CUDA property probe | PR readiness, runtime behavior |
 | `upstream/sglang/patch_plan.md` | upstream-draft | documentation edit | current | SGLang | none | valid plan, not evidence of a fix | Minimal diagnostics/test-first patch plan and external repo status | Runtime backend behavior or PR readiness |
-| `upstream/sglang/diff_summary.md` | upstream-draft | documentation edit | current | SGLang | none | valid no-diff summary | Confirms no external SGLang checkout/diff exists yet | Patch correctness |
+| `upstream/sglang/diff_summary.md` | upstream-draft | documentation edit | current | SGLang | none | valid no-diff summary | Confirms clean external SGLang checkout with no source diff | Patch correctness |
 | `docs/external_repo_setup.md` | doc | documentation edit | current | harness | none | valid setup plan | Exact sparse checkout commands and intended patch branches | External source state until commands are run |
 | `docs/reproducibility.md` | doc | documentation edit | current | harness | none | valid setup plan | Fresh clone `.venv` setup, dry-run validation, locked smoke command shapes, archive flow | Runtime benchmark validity |
 | `docs/dependency_matrix.md` | doc | documentation edit | current | harness | none | valid dependency plan | Base vs optional dependency state and risks | Successful optional framework installs |
@@ -161,9 +189,9 @@ run during this audit.
 | Blocker | Evidence | Next action |
 |---|---|---|
 | GPU contention / below threshold | `results/gpu_status/post_queue_audit_status.json`; active PID `2999453`, GPU 0 ~60.42 GiB free, GPU 1 ~66.88 GiB free | Retry guard check later; do not run benchmarks now |
-| No initial git commit | `git log --oneline -5` failed; env metadata has `git.this_repo=null` | Create initial commit after human review |
+| No runtime source/benchmark evidence at current upstream commits | `docs/current_upstream_source_audit.md` | Run a locked one-GPU smoke after guard eligibility passes |
 | SGLang absent | `results/env/benchmark_matrix_verify_blackwell.json` and `sglang_deep_dive_verify_blackwell.json` | Install or checkout SGLang in isolated env |
-| External vLLM/SGLang source trees absent | `TASK_BOARD.md`, local filesystem state | Run documented bootstrap only when approved |
+| External vLLM/SGLang patch branches absent | `TASK_BOARD.md`, local filesystem state | Create branches only when writing small diagnostics patches |
 | Target low-precision models not validated locally | no local real model artifact under `results/` | Identify smallest accessible target model or document model-access blocker |
 
 ## Safety And Consistency Checks
@@ -182,8 +210,9 @@ run during this audit.
 - New non-wait `not_eligible` wrapper metadata records validity fields
   (`contention_label`, `contended`, target processes, run directory, and
   selected GPU IDs) consistently with completed and wait-timeout runs.
-- External vLLM/SGLang source trees are absent, so there are no upstream diffs,
-  dirty external branches, or upstream branch result files in this workspace.
+- External vLLM/SGLang source trees are clean sparse checkouts with no upstream
+  source diffs, dirty external branches, or upstream branch result files in this
+  workspace.
 - All benchmark rows currently in `results/benchmarks/summary.csv` are dry-run
   rows and `headline_eligible=False`.
 - No raw JSONL file currently supports a real serving benchmark claim.

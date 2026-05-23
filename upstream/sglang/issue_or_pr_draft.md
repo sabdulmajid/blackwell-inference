@@ -12,9 +12,9 @@ Triton extend kernel tile selection or Qwen3-Next hybrid GDN linear-attention
 decode/prefill defaults, which are selected separately from
 `--attention-backend`.
 
-Current upstream already has SM120-specific logic in Triton extend attention and
-Blackwell-aware FP8 GEMM dispatch. I do not yet have enough runtime evidence to
-propose a broad hardware-gate change.
+Current upstream already has SM120-specific logic in capability helpers, Triton
+extend attention, and FP8 GEMM dispatch. I do not yet have enough runtime
+evidence to propose a broad hardware-gate change.
 
 ## Environment
 
@@ -35,9 +35,8 @@ Evidence from local locked GPU metadata probe:
 - Local `sgl-kernel`: not installed
 - SGLang source map previously inspected: upstream `main`
   `47979fb252ce0954d1076c67183879bb52e17476`
-- Current remote `main` observed during patch-discipline pass:
-  `1bd4f94598a621cf5e8c27686311e92134e9edb0`; revalidate source paths after
-  checkout before editing or posting.
+- Current upstream source inspected:
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
 
 ## Reproduction Command
 

@@ -1,15 +1,15 @@
 # SGLang Diff Summary
 
-Status: no external SGLang checkout exists and no upstream source diff was
+Status: a clean external SGLang checkout exists, but no upstream source diff was
 created in this pass.
 
 ## External Repo
 
 - Path: `external/sglang`
-- Exists: no
-- Local branch: none
-- Local commit: none
-- Local dirty status: not applicable
+- Exists: yes
+- Local branch: detached HEAD
+- Local commit: `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
+- Local dirty status: clean
 - Diff stat: none
 
 ## Intended Branch

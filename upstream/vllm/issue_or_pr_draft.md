@@ -10,10 +10,10 @@ FP4/MXFP4/NVFP4 paths. Static selector simulation of installed vLLM `0.12.0`
 returns Marlin on mocked SM120 because native MXFP4 FlashInfer branches are
 gated on exact SM100 and the Triton fallback excludes capabilities `>= 11.0`.
 
-Current upstream main has refactored this path into the fused-MoE oracle. It
-appears to include an explicit SM120-family allowance for FlashInfer CUTLASS
-experts, so I am not proposing a broad capability-widening patch without runtime
-evidence.
+Current upstream main has refactored this path into the fused-MoE oracle and
+now includes an explicit SM12x FlashInfer B12x NVFP4 MoE path plus an
+SM120-gated kernel test. I am therefore not proposing a broad
+capability-widening patch without runtime evidence.
 
 ## Environment
 
@@ -26,7 +26,7 @@ evidence.
 - Installed FlashInfer package: `flashinfer-python 0.5.3`
 - Installed vLLM source: Python site-packages `vllm` module path recorded in
   `results/repros/vllm_mxfp4_sm120/static_backend_selection_probe.json`.
-- Upstream HEAD observed: `87e31455b056c6ce59bf5dcb3c622155431851db`
+- Upstream source inspected: `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
 
 Evidence:
 
@@ -43,7 +43,7 @@ Static selector probe, no CUDA/model load:
 ```bash
 python scripts/vllm_mxfp4_static_probe.py \
   --out results/repros/vllm_mxfp4_sm120/static_backend_selection_probe.json \
-  --upstream-head 87e31455b056c6ce59bf5dcb3c622155431851db
+  --upstream-head 5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e
 ```
 
 Prepared one-GPU runtime repro, not yet run because both GPUs had an active

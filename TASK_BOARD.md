@@ -16,18 +16,18 @@ Legend:
 | Install Python deps | TODO | Existing environment is sufficient for first-pass tests; no package install was performed. |
 | Verify Codex can read AGENTS.md | DONE | First-pass master agent read `AGENTS.md`, `PROJECT_BRIEF.md`, `MASTER_GOAL.md`, `TASK_BOARD.md`, docs, prompts, scripts, repros, and upstream drafts. |
 | Record missing `.codex/` config | DONE | `.codex/config.toml` and `.codex/agents/*.toml` are absent in this checkout; not required for harness execution. |
-| Create initial git checkpoint | BLOCKED | Human approval required. Project instructions say not to commit unless explicitly asked; metadata will record `git_commit=null` until the first commit exists. |
+| Create initial git checkpoint | DONE | Public scaffold committed and pushed to `origin/main` at `c55174365f7ce689418f2dbf77849657d76c7470`. |
 | Run `verify_blackwell.py` | DONE | Latest controlled smoke artifact: `results/env/verify_blackwell.json`. Default mode is metadata-only; PyTorch CUDA probing is skipped unless `--probe-cuda` runs under the GPU lock wrapper. |
-| Run `gpu_guard.py status` | DONE | Latest post-queue audit artifact: `results/gpu_status/post_queue_audit_status.json`; both GPUs had active PID `2999453` and were below the 70 GiB threshold, so no real serving benchmark was launched. |
+| Run `gpu_guard.py status` | DONE | Latest impact-pass artifact: `results/gpu_status/impact_resume_status.json`; both GPUs had an active Python process, so no new GPU runtime repro was launched. |
 | Confirm GPU lock wrapper works with `sleep 5` | DONE | `results/gpu_runs/20260520T091452Z_first_pass_lock_sleep/run_meta.json`; non-GPU sleep command completed and was marked `invalid_contended` because GPU 0 had an existing process. |
 
 ## 1. vLLM SM120 FP4/MXFP4/NVFP4
 
 | Task | Status | Evidence / notes |
 |---|---:|---|
-| Clone/check out vLLM | BLOCKED | `external/vllm` is absent. Bootstrap command is documented in `docs/vllm_sm120_backend_selection.md`; no clone was performed in this pass. |
-| Record vLLM commit | DOING | Installed wheel is vLLM `0.12.0` with no source commit metadata. Upstream HEAD observed by `git ls-remote`: `87e31455b056c6ce59bf5dcb3c622155431851db`; exact checked-out vLLM source commit is still blocked because `external/vllm` is absent. |
-| Map backend-selection codepaths | DONE | `docs/vllm_sm120_backend_selection.md`; installed `mxfp4.py`, `platforms/interface.py`, `flashinfer_fp4_moe.py`, `nvfp4_moe_support.py`, `modelopt.py`; upstream `fused_moe/oracle/mxfp4.py`, `oracle/nvfp4.py`, `experts/trtllm_mxfp4_moe.py`, `experts/flashinfer_cutlass_moe.py`. |
+| Clone/check out vLLM | DONE | Sparse checkout exists at `external/vllm`, clean detached HEAD `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`. `external/` remains ignored and is not committed. |
+| Record vLLM commit | DONE | Current inspected source commit: `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`. Installed wheel is vLLM `0.12.0` and may differ materially from source HEAD. |
+| Map backend-selection codepaths | DONE | `docs/vllm_sm120_backend_selection.md` and `docs/current_upstream_source_audit.md`; current source map includes `oracle/nvfp4.py`, `oracle/mxfp4.py`, `experts/flashinfer_b12x_moe.py`, `experts/trtllm_mxfp4_moe.py`, `flashinfer_utils.py`, `marlin_utils.py`, and `tests/kernels/moe/test_flashinfer_b12x_moe.py`. |
 | Write minimal repro script | DOING | `repros/vllm_mxfp4_sm120/run_repro.sh` is parameterized, refuses unlocked GPU launches, supports `--quantization` and `--dry-run`, captures env metadata, and now writes `backend_summary.json` from backend logs. Dry-run command: `results/repros/vllm_mxfp4_sm120/20260520T100045Z/command.txt`. |
 | Run small smoke model | BLOCKED | No vLLM GPU run launched. Latest benchmark-matrix checks show active PID `2999453` on both GPUs and both GPUs below the required 70 GiB threshold: `results/gpu_status/benchmark_matrix_pre_status.json`, `results/gpu_status/benchmark_matrix_gpu0_check.json`, `results/gpu_status/benchmark_matrix_gpu1_check.json`. |
 | Run target low-precision repro | TODO |  |
@@ -41,9 +41,9 @@ Legend:
 
 | Task | Status | Evidence / notes |
 |---|---:|---|
-| Clone/check out SGLang | BLOCKED | `external/sglang` is absent and `sglang`/`sgl-kernel` are not installed. Bootstrap command is documented in `docs/sglang_sm120_attention_backend.md`; no clone or model download was performed in this pass. Environment artifact: `results/env/sglang_deep_dive_verify_blackwell.json`. |
-| Record SGLang commit | DOING | Prior upstream source map inspected GitHub `main` at `47979fb252ce0954d1076c67183879bb52e17476`. Current remote `main` observed by `git ls-remote` during patch planning: `1bd4f94598a621cf5e8c27686311e92134e9edb0`; exact checked-out SGLang source commit is still blocked because `external/sglang` is absent. |
-| Map attention/backend-selection codepaths | DONE | `docs/sglang_sm120_attention_backend.md`; source map covers `server_args.py`, capability helpers, attention registry, model runner, Triton attention, FlashInfer attention, Qwen3-Next/GDN linear attention, and FP8 GEMM dispatch. |
+| Clone/check out SGLang | DONE | Sparse checkout exists at `external/sglang`, clean detached HEAD `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`. `sglang`/`sgl-kernel` are still not installed in the current Python environment. |
+| Record SGLang commit | DONE | Current inspected source commit: `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`. |
+| Map attention/backend-selection codepaths | DONE | `docs/sglang_sm120_attention_backend.md` and `docs/current_upstream_source_audit.md`; current source map covers SM120 capability helpers, Triton extend-attention block sizing, attention defaulting, GDN linear-attention dispatch, FlashInfer GDN decode-only behavior, and FP8 GEMM auto fallback. |
 | Write minimal repro script | DONE | `repros/sglang_attention_backend_sm120/run_repro.sh` is parameterized, refuses unlocked GPU launches, supports `--dry-run`, captures `verify_blackwell.py --probe-cuda` under the wrapper, exposes attention/linear-attention/FP8 backend flags, writes `backend_summary.json`, and uses 2 warmups / 5 requests for smoke. Dry-run artifacts: `results/repros/sglang_attention_backend_sm120/sglang_triton_dry_run_20260520T101900Z/command.txt` and `results/repros/sglang_attention_backend_sm120/sglang_flashinfer_decode_dry_run_20260520T101901Z/command.txt`. |
 | Run small smoke model | BLOCKED | No installed SGLang runtime and no small local Qwen3-Next/GDN fixture found in this pass. Next step is bootstrap/install or identify a local small model that exercises the GDN path. |
 | Run target FP8 repro | TODO | Target Qwen3-Next FP8 model was not run; static/small-model paths must be exhausted first. |
@@ -82,14 +82,14 @@ Legend:
 
 | Task | Status | Evidence / notes |
 |---|---:|---|
-| Record external setup commands | DONE | `docs/external_repo_setup.md`; sparse checkout commands recorded for vLLM `87e31455b056c6ce59bf5dcb3c622155431851db` and SGLang `1bd4f94598a621cf5e8c27686311e92134e9edb0`. Commands were not run. |
-| Create vLLM patch plan | DONE | `upstream/vllm/patch_plan.md`; diagnostics/test-first plan only. No external vLLM diff exists because `external/vllm` is absent. |
-| Create SGLang patch plan | DONE | `upstream/sglang/patch_plan.md`; diagnostics/test-first plan only. No external SGLang diff exists because `external/sglang` is absent. |
-| Summarize external diffs | DONE | `upstream/vllm/diff_summary.md` and `upstream/sglang/diff_summary.md` record that no external checkout/diff exists yet and define the intended small diff shape. |
+| Record external setup commands | DONE | `docs/external_repo_setup.md`; updated with sparse checkout commands and current inspected commits for vLLM `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e` and SGLang `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`. |
+| Create vLLM patch plan | DONE | `upstream/vllm/patch_plan.md`; current-source diagnostics/test-first plan only. External vLLM checkout is clean and has no diff. |
+| Create SGLang patch plan | DONE | `upstream/sglang/patch_plan.md`; current-source diagnostics/test-first plan only. External SGLang checkout is clean and has no diff. |
+| Summarize external diffs | DONE | `upstream/vllm/diff_summary.md` and `upstream/sglang/diff_summary.md` record no external source diffs and define the intended small diff shape. |
 | Add upstream no-silly-mistakes checklist | DONE | `docs/upstream_pr_protocol.md`; checklist rejects broad hardware assumptions, stale SHAs, large-model-only tests, unsupported performance claims, dirty checkouts, and uncontrolled backend forcing. |
-| Create external vLLM patch branch | BLOCKED | `external/vllm` is absent. Do not create a branch until the setup command is approved/run and `git status --short` is clean. |
-| Create external SGLang patch branch | BLOCKED | `external/sglang` is absent. Do not create a branch until the setup command is approved/run and `git status --short` is clean. |
-| Run patch-discipline tests | DONE | `results/tests/upstream_patch_discipline_pytest.txt`; `26 passed in 7.12s`. No external tests were run because `external/vllm` and `external/sglang` are absent. |
+| Create external vLLM patch branch | TODO | `external/vllm` is clean at the inspected commit. Branch creation is intentionally deferred until a diagnostics patch is written. |
+| Create external SGLang patch branch | TODO | `external/sglang` is clean at the inspected commit. Branch creation is intentionally deferred until a diagnostics patch is written. |
+| Run patch-discipline tests | DONE | `results/tests/upstream_patch_discipline_pytest.txt`; `26 passed in 7.12s`. No external tests were run in that pass; current external checkouts are source-inspection only. |
 
 ## 6. Reproducibility and dependencies
 
@@ -99,5 +99,6 @@ Legend:
 | Write dependency matrix | DONE | `docs/dependency_matrix.md`; current observed versions are also saved in `results/env/versions.json`. |
 | Write model access plan | DONE | `docs/model_access_plan.md`; separates tiny smoke, small meaningful, vLLM target, and SGLang target models and marks large/gated download risks. |
 | Add version/repro scripts | DONE | `scripts/collect_versions.py`, `scripts/check_reproducibility.py`, and `scripts/archive_results.py`; all are lightweight and avoid CUDA initialization. |
-| Run reproducibility check | DONE | `results/env/reproducibility_check.json`; status `ok` with 7 warnings for missing optional/dev packages, non-repo current venv, absent external repos, absent repo-local `.venv`, and missing initial git commit. |
+| Run reproducibility check | DONE | `results/env/reproducibility_check.json`; status `ok` with documented warnings for missing optional/dev packages, non-repo current venv, absent repo-local `.venv`, and optional framework gaps. |
 | Run reproducibility tests | DONE | `results/tests/reproducibility_pytest.txt`; `29 passed, 1 skipped in 0.77s`. The skipped test is an optional vLLM import/static-probe test gated by `BLACKWELL_INFERENCE_RUN_OPTIONAL_IMPORT_TESTS=1`. |
+| Run impact source-audit tests | DONE | `results/tests/impact_source_audit_pytest.txt`; `29 passed, 1 skipped in 0.77s`. |

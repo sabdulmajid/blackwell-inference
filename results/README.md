@@ -5,6 +5,8 @@ schema/dry-run only unless explicitly marked real and `valid_uncontended`.
 
 Full post-queue audit ledger: `docs/evidence_ledger.md`.
 
+Current upstream source audit: `docs/current_upstream_source_audit.md`.
+
 ## Environment
 
 - `results/env/verify_blackwell.json`
@@ -23,11 +25,11 @@ Full post-queue audit ledger: `docs/evidence_ledger.md`.
 - `results/gpu_status/hardware_sentinel_20260520_gpu1_check.json`
 - `results/gpu_status/benchmark_matrix_final_status.json`
 - `results/gpu_status/post_queue_audit_status.json`
+- `results/gpu_status/impact_resume_status.json`
 - `results/gpu_runs/20260520T100750Z_sglang_device_probe/`
 
-Latest post-queue audit status: both GPUs were occupied by active PID `2999453`
-and below the required 70 GiB free-memory threshold. No real serving benchmark
-was launched in that state.
+Latest impact-pass status: both GPUs had active Python work. No real serving
+benchmark or runtime repro was launched in that state.
 
 ## Benchmarks
 
@@ -45,9 +47,10 @@ All current benchmark rows are dry runs and are not headline-eligible.
 - `results/tests/post_queue_audit_pytest.txt`
 - `results/tests/upstream_patch_discipline_pytest.txt`
 - `results/tests/reproducibility_pytest.txt`
+- `results/tests/impact_source_audit_pytest.txt`
 
 Latest lightweight test result: `29 passed, 1 skipped in 0.77s` from
-`results/tests/reproducibility_pytest.txt`.
+`results/tests/impact_source_audit_pytest.txt`.
 
 Latest reproducibility check: `results/env/reproducibility_check.json`, status
 `ok` with 7 documented warnings for optional/framework gaps and non-repo current
@@ -67,3 +70,13 @@ No real vLLM server benchmark or target MXFP4/NVFP4 runtime repro exists yet.
 - `results/gpu_runs/20260520T100750Z_sglang_device_probe/verify_blackwell_probe_cuda.json`
 
 No real SGLang runtime repro exists yet because SGLang is not installed locally.
+
+## External Source Inspection
+
+- vLLM current upstream sparse checkout inspected at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`.
+- SGLang current upstream sparse checkout inspected at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`.
+
+These checkouts live under ignored `external/` directories. They are source
+inputs, not committed result artifacts.

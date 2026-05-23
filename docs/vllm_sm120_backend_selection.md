@@ -8,10 +8,11 @@ locked SM120 hardware repro proves which native backend actually loads and runs.
 - Installed vLLM: `0.12.0` from the active Python environment's
   `site-packages/vllm` path; private absolute path redacted.
 - Installed packages: `torch 2.9.0`, `triton 3.5.0`, `flashinfer-python 0.5.3`.
-- `external/vllm` is absent in this checkout.
-- Upstream HEAD observed with `git ls-remote`: `87e31455b056c6ce59bf5dcb3c622155431851db`.
+- `external/vllm` is a clean sparse checkout at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`.
+- Current upstream source audit: `docs/current_upstream_source_audit.md`.
 
-Bootstrap command for a future local upstream checkout:
+Bootstrap command used for local upstream inspection:
 
 ```bash
 mkdir -p external
@@ -20,7 +21,9 @@ git -C external/vllm sparse-checkout set \
   vllm/model_executor/layers/quantization \
   vllm/model_executor/layers/fused_moe \
   vllm/platforms \
-  tests/kernels/moe
+  tests/kernels/moe \
+  tests/v1/attention
+git -C external/vllm checkout 5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e
 git -C external/vllm rev-parse HEAD
 ```
 
@@ -193,12 +196,12 @@ Local lightweight tests:
 ```bash
 python scripts/vllm_mxfp4_static_probe.py \
   --out results/repros/vllm_mxfp4_sm120/static_backend_selection_probe.json \
-  --upstream-head 87e31455b056c6ce59bf5dcb3c622155431851db
+  --upstream-head 5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e
 
 pytest -q
 ```
 
-Future upstream tests, after `external/vllm` exists:
+Future upstream tests:
 
 - mocked selector tests for MXFP4 backend selection,
 - mocked NVFP4 FlashInfer helper tests,

@@ -27,15 +27,17 @@ Specific risks:
 Current vLLM investigation note:
 
 - `docs/vllm_sm120_backend_selection.md` maps installed vLLM `0.12.0`
-  and upstream HEAD `87e31455b056c6ce59bf5dcb3c622155431851db`.
+  plus current upstream source inspected at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`.
 - Static evidence for installed vLLM is saved at
   `results/repros/vllm_mxfp4_sm120/static_backend_selection_probe.json`.
 - Installed vLLM's legacy MXFP4 selector returns Marlin for mocked SM120 even
   when FlashInfer and Triton availability probes are forced true, because exact
   SM100 checks fail and the Triton capability range excludes SM120.
-- Current upstream main has a refactored oracle path and an explicit SM120-family
-  allowance in the FlashInfer CUTLASS expert class, so the next necessary
-  evidence is a locked one-GPU runtime repro rather than a broad selector patch.
+- Current upstream main has an explicit SM12x FlashInfer B12x NVFP4 MoE expert,
+  an SM120-gated kernel test, and a `flashinfer_b12x` explicit backend option.
+  The next necessary evidence is a locked one-GPU runtime repro rather than a
+  broad selector patch.
 
 ## SGLang concepts to map
 
@@ -49,21 +51,23 @@ Current vLLM investigation note:
 
 Current SGLang investigation note:
 
-- `docs/sglang_sm120_attention_backend.md` maps a previously inspected upstream
-  SGLang commit `47979fb252ce0954d1076c67183879bb52e17476`; current remote
-  `main` observed during patch planning is
-  `1bd4f94598a621cf5e8c27686311e92134e9edb0`, so source paths must be
-  revalidated after checkout.
-- `external/sglang` and the `sglang` package are absent in this environment, so
-  no runtime SGLang backend claim has been made.
+- `docs/sglang_sm120_attention_backend.md` maps an earlier source snapshot;
+  `docs/current_upstream_source_audit.md` revalidates current upstream source at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`.
+- `external/sglang` now exists as a clean sparse checkout, but the `sglang`
+  package is still absent from the current Python environment, so no runtime
+  SGLang backend claim has been made.
 - Local SM120 device properties were collected under the GPU lock wrapper at
   `results/gpu_runs/20260520T100750Z_sglang_device_probe/verify_blackwell_probe_cuda.json`.
 - PyTorch reported compute capability `(12, 0)` and
   `shared_memory_per_multiprocessor=102400` for visible GPU 0 in that locked
   probe.
-- Qwen3-Next hybrid GDN models have separate full-attention and
-  linear-attention backend selection. `--attention-backend flashinfer` alone
-  does not prove the GDN path avoided Triton.
+- Current upstream contains SM120 capability helpers, SM120 Triton attention
+  block sizing for smaller workstation shared-memory limits, and an SM120 FP8
+  GEMM auto fallback to Triton.
+- Qwen3-Next hybrid GDN models have separate full-attention and linear-attention
+  backend selection. `--attention-backend flashinfer` alone does not prove the
+  GDN path avoided Triton.
 - FlashInfer GDN code comments and guards in current upstream indicate SM100+
   decode-only support; prefill should remain Triton unless newer evidence says
   otherwise.

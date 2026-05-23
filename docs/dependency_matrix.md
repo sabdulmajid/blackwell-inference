@@ -9,8 +9,10 @@ environments.
 - Python: `3.12.3`
 - Current interpreter is in a non-repo virtual environment. Reproduction should
   use `.venv` in the repo root.
-- `external/vllm`: absent
-- `external/sglang`: absent
+- `external/vllm`: clean sparse checkout at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+- `external/sglang`: clean sparse checkout at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
 - SGLang Python packages: absent
 - Version artifact: `results/env/versions.json`
 
@@ -28,7 +30,7 @@ environments.
 | ruff | not installed | `>=0.6.0` recommended for lint only | `requirements.txt` | missing | Missing here; tests do not require it. Install in `.venv` for lint. |
 | torch | `2.9.0` | optional, match CUDA 12.8 stack when probing GPU | verifier artifacts | current env | Do not use `torch.cuda` outside the GPU lock wrapper. |
 | triton | `3.5.0` | optional, framework-dependent | verifier artifacts | current env | Needed for framework/runtime investigations. |
-| vLLM | `0.12.0` | optional installed wheel; upstream source preferred for patches | verifier artifacts and `upstream/vllm/patch_plan.md` | current env | Installed wheel supports static probing; not a checked-out upstream source. |
+| vLLM | `0.12.0` wheel; source `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e` | optional installed wheel; upstream source preferred for patches | verifier artifacts and `upstream/vllm/patch_plan.md` | current env plus ignored `external/vllm` | Installed wheel supports static probing; source checkout is for patch planning. |
 | SGLang | not installed | optional, install only in isolated env | verifier artifacts and `upstream/sglang/patch_plan.md` | missing | Required before SGLang runtime repros. |
 | sgl-kernel | not installed | optional, SGLang-dependent | verifier artifacts | missing | Required by some SGLang paths. |
 | flashinfer-python | `0.5.3` | optional, framework-dependent | verifier artifacts | current env | Package distribution is `flashinfer-python`; import name may differ by version. |
@@ -59,8 +61,8 @@ isolated environment, never in global Python.
 
 - The current shell relies on a non-repo virtual environment, so package
   availability is not enough for reproduction.
-- vLLM is installed as a wheel but `external/vllm` is absent; upstream patch work
-  still needs a source checkout.
+- vLLM wheel and current source checkout may differ materially; runtime evidence
+  must state which one was used.
 - SGLang is absent; SGLang runtime claims remain blocked.
 - `ruff` is listed in requirements but absent from the current environment.
 - No lockfile exists. If exact package pinning becomes necessary, generate a

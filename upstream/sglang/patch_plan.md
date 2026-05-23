@@ -1,32 +1,32 @@
 # SGLang Patch Plan: SM120 FP8 Attention / Backend / Shared Memory
 
-Status: not PR-ready. No external SGLang checkout exists in this workspace, so
-no upstream branch or source patch was created in this pass.
+Status: not PR-ready. A clean sparse SGLang checkout exists for source
+inspection, but no upstream branch or source patch has been created yet.
 
 ## Upstream Commit
 
-- Patch target: SGLang `main`
-  `1bd4f94598a621cf5e8c27686311e92134e9edb0`
+- Patch target inspected: SGLang `main`
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
 - Prior source map inspected: `47979fb252ce0954d1076c67183879bb52e17476`
-- Source checkout: missing (`external/sglang` absent)
+- Source checkout: `external/sglang`, clean detached HEAD
 - Installed package evidence: `sglang` and `sgl-kernel` absent
 
-Because remote `main` moved since the source map was written, revalidate all
-candidate files after checking out the patch target.
+Remote `main` moved since the earlier source map. Candidate files have now been
+revalidated against the inspected commit above.
 
 ## External Repo Status
 
 | Field | Status |
 |---|---|
 | Path | `external/sglang` |
-| Exists | no |
-| Remote URL | blocked until checkout; intended `https://github.com/sgl-project/sglang.git` |
-| Current branch | none |
-| Commit SHA | none locally; remote target `1bd4f94598a621cf5e8c27686311e92134e9edb0` |
-| Dirty status | not applicable |
-| Untracked files | not applicable |
+| Exists | yes |
+| Remote URL | `https://github.com/sgl-project/sglang.git` |
+| Current branch | detached HEAD |
+| Commit SHA | `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae` |
+| Dirty status | clean |
+| Untracked files | none |
 | Existing diff | none |
-| Relevant tests | blocked until checkout |
+| Relevant tests | `test/` sparse checkout is present, but dependency readiness has not been validated |
 
 Setup command: `docs/external_repo_setup.md`.
 
@@ -86,6 +86,18 @@ FP8 GEMM:
   - `_dispatch_explicit_backend`
   - `_get_flashinfer_groupwise_backend`
 
+Current-source details:
+
+- `is_blackwell_supported()` includes device major versions 10, 11, and 12.
+- `is_sm120_supported()` is a dedicated device-major-12 helper.
+- `_get_block_sizes_for_extend_attention()` has an SM120 branch with smaller
+  Triton blocks for RTX PRO workstation Blackwell shared-memory limits.
+- `initialize_fp8_gemm_config()` changes `auto` FP8 GEMM selection to `triton`
+  on SM120.
+- `FlashInferGDNKernel` documents SM100+ support as decode-only; prefill and
+  verify paths remain Triton/fallback unless newer runtime evidence proves
+  otherwise.
+
 ## Minimal Patch Objective
 
 Do not hardcode a workaround yet. The first acceptable upstream patch should
@@ -100,7 +112,9 @@ improve diagnostics and add targeted dispatch tests:
    especially FlashInfer decode plus Triton prefill for hybrid GDN models.
 
 Only after a locked runtime repro identifies the failing path should a second
-patch tune Triton block sizes or change fallback behavior.
+patch tune Triton block sizes or change fallback behavior. Current source
+already has multiple SM120-specific checks, so a broad capability-enablement
+patch would be stale and overbroad.
 
 ## Alternatives Considered
 
@@ -144,7 +158,6 @@ Confirmed facts:
 
 ## Evidence Missing
 
-- Checked-out upstream source commit under `external/sglang`.
 - SGLang installed or testable in an isolated environment.
 - Runtime logs showing the failing backend path.
 - Triton requested shared-memory bytes and exact failing kernel.
@@ -196,7 +209,5 @@ with clear diagnostics when no supported backend exists.
 
 ## Submission Readiness
 
-Not ready for PR. Ready to create an upstream branch only after
-`external/sglang` is checked out and candidate source paths are revalidated
-against `1bd4f94598a621cf5e8c27686311e92134e9edb0`. A behavior-changing patch
-needs one locked SGLang runtime repro first.
+Not ready for PR. Ready for a small diagnostics branch in `external/sglang`.
+A behavior-changing patch needs one locked SGLang runtime repro first.

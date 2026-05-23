@@ -5,32 +5,33 @@ repro captures backend logs and correctness output.
 
 ## Source State
 
-- Local `external/sglang`: absent.
+- Local `external/sglang`: clean sparse checkout at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`.
 - Installed `sglang`: absent.
 - Installed `sgl-kernel`: absent.
 - Installed `flashinfer-python`: `0.5.3`.
 - Installed `torch`: `2.9.0+cu128`.
 - Installed `triton`: `3.5.0`.
-- Upstream SGLang source map previously inspected via GitHub at commit
+- Earlier upstream SGLang source map inspected via GitHub at commit
   `47979fb252ce0954d1076c67183879bb52e17476`.
-- Current remote `main` observed during the patch-discipline pass:
-  `1bd4f94598a621cf5e8c27686311e92134e9edb0`; revalidate source paths after
-  checkout before editing.
+- Current upstream source audit:
+  `docs/current_upstream_source_audit.md`.
 
-Bootstrap command for a future source checkout:
+Bootstrap command used for local source inspection:
 
 ```bash
 mkdir -p external
 git clone --filter=blob:none --sparse https://github.com/sgl-project/sglang.git external/sglang
-git -C external/sglang sparse-checkout set \
+git -C external/sglang sparse-checkout set --no-cone \
   python/sglang/srt/server_args.py \
-  python/sglang/srt/model_executor \
-  python/sglang/srt/layers/attention \
-  python/sglang/srt/layers/quantization \
-  python/sglang/srt/configs \
-  python/sglang/srt/models \
-  test
-git -C external/sglang checkout 1bd4f94598a621cf5e8c27686311e92134e9edb0
+  python/sglang/srt/model_executor/** \
+  python/sglang/srt/layers/attention/** \
+  python/sglang/srt/layers/quantization/** \
+  python/sglang/srt/utils/** \
+  python/sglang/srt/configs/** \
+  python/sglang/srt/models/** \
+  test/**
+git -C external/sglang checkout a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae
 git -C external/sglang rev-parse HEAD
 ```
 

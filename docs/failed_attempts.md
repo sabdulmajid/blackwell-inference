@@ -1,5 +1,41 @@
 # Failed Attempts
 
+## 2026-05-23: impact pass stayed source-only because GPUs were active
+
+### Goal
+
+Make a meaningful next step without violating GPU contention policy.
+
+### Outcome
+
+No GPU-heavy workload was launched. A fresh GPU status check showed active
+Python work on both GPUs, so this pass used sparse source inspection instead of
+a runtime repro.
+
+Evidence:
+
+- Status: `results/gpu_status/impact_resume_status.json`
+- Source audit: `docs/current_upstream_source_audit.md`
+- vLLM checkout: `external/vllm` at
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+- SGLang checkout: `external/sglang` at
+  `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
+
+### Classification
+
+`blocked: gpu contention`, with `completed: current-upstream source audit`
+
+### Next action
+
+Retry a locked one-GPU runtime smoke only after:
+
+```bash
+python scripts/gpu_guard.py check --gpus 0 --min-free-gb 70
+```
+
+returns eligible, or use GPU 1 only if it is the eligible least-contended GPU
+and the selection rationale is recorded.
+
 ## 2026-05-20: one-GPU PyTorch CUDA smoke blocked by active GPU process
 
 ### Goal

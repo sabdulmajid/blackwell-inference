@@ -62,6 +62,16 @@ This repo tracks two concrete issues:
 These are the only findings currently supported by saved local evidence and
 tests:
 
+- Current upstream source has been sparsely checked out and inspected at:
+  - vLLM `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+  - SGLang `a5a64a311a39b153d1e4d3d6bcb67e77cdc9aeae`
+- vLLM current `main` already contains an explicit SM12x NVFP4 FlashInfer B12x
+  MoE expert and SM120-gated kernel test. The remaining question is when that
+  path is selected, why it falls back, and whether runtime behavior is correct.
+- SGLang current `main` already contains SM120 capability helpers, SM120 Triton
+  attention block sizing, and an SM120 FP8 GEMM auto fallback to Triton. The
+  remaining question is which full-attention, GDN linear-attention, and FP8 GEMM
+  paths are actually selected at runtime.
 - The harness can collect environment metadata without initializing CUDA by
   default.
 - GPU-consuming commands are designed to run through a per-GPU lock wrapper that
@@ -166,7 +176,7 @@ Current patch planning files:
 1. Create clean external source checkouts for vLLM and SGLang.
 2. Run one valid, uncontended, one-GPU tiny-model smoke test.
 3. Capture real vLLM backend-selection logs on SM120.
-4. Install/check out SGLang in an isolated environment and capture backend logs.
+4. Install SGLang in an isolated environment and capture backend logs.
 5. Add targeted upstream diagnostics/tests.
 6. Run only minimal, evidence-driven target repros.
 7. Publish upstream issue updates or PRs when runtime evidence is sufficient.
@@ -179,7 +189,7 @@ a completed benchmark report and not yet an upstream patch submission.
 The most important blockers are:
 
 - no valid real serving benchmark yet,
-- no external vLLM/SGLang source checkout committed under `external/`,
-- SGLang not installed in the current environment,
+- external vLLM/SGLang source checkouts are local only and intentionally ignored,
+- SGLang is not installed in the current Python environment,
 - no large target-model download/use approved,
 - no initial upstream PR-ready patch until runtime evidence is collected.

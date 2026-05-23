@@ -1,31 +1,32 @@
 # vLLM Patch Plan: SM120 FP4 / MXFP4 / NVFP4 Backend Selection
 
-Status: not PR-ready. No external vLLM checkout exists in this workspace, so no
-upstream branch or source patch was created in this pass.
+Status: not PR-ready. A clean sparse vLLM checkout exists for source inspection,
+but no upstream branch or source patch has been created yet.
 
 ## Upstream Commit
 
-- Patch target: vLLM `main`
-  `87e31455b056c6ce59bf5dcb3c622155431851db`
-- Source checkout: missing (`external/vllm` absent)
+- Patch target inspected: vLLM `main`
+  `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`
+- Source checkout: `external/vllm`, clean detached HEAD
 - Installed package evidence: vLLM `0.12.0`
 
 The installed-package evidence and current upstream source map are materially
-different. Revalidate the codepath after checking out the target commit.
+different. Runtime evidence must identify whether the installed wheel or the
+current upstream checkout is the relevant patch target.
 
 ## External Repo Status
 
 | Field | Status |
 |---|---|
 | Path | `external/vllm` |
-| Exists | no |
-| Remote URL | blocked until checkout; intended `https://github.com/vllm-project/vllm.git` |
-| Current branch | none |
-| Commit SHA | none locally; remote target `87e31455b056c6ce59bf5dcb3c622155431851db` |
-| Dirty status | not applicable |
-| Untracked files | not applicable |
+| Exists | yes |
+| Remote URL | `https://github.com/vllm-project/vllm.git` |
+| Current branch | detached HEAD |
+| Commit SHA | `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e` |
+| Dirty status | clean |
+| Untracked files | none |
 | Existing diff | none |
-| Relevant tests | blocked until checkout |
+| Relevant tests | `tests/kernels/moe/test_flashinfer_b12x_moe.py`, `tests/kernels/moe/test_ocp_mx_moe.py`, `tests/kernels/moe/test_trtllm_nvfp4_moe.py` |
 
 Setup command: `docs/external_repo_setup.md`.
 
@@ -60,11 +61,16 @@ Current upstream target:
 - `vllm/model_executor/layers/fused_moe/oracle/nvfp4.py`
   - `NvFp4MoeBackend`
   - backend selection and env override handling
+- `vllm/model_executor/layers/fused_moe/experts/flashinfer_b12x_moe.py`
+  - `FlashInferB12xExperts`
+  - SM12x device-family guard and FlashInfer B12x availability guard
 - `vllm/model_executor/layers/fused_moe/experts/trtllm_mxfp4_moe.py`
   - SM100-family TRTLLM MXFP4 gating
 - `vllm/model_executor/layers/fused_moe/experts/flashinfer_cutlass_moe.py`
   - FlashInfer CUTLASS capability allowance, including explicit SM120-family
     support per prior source map
+- `tests/kernels/moe/test_flashinfer_b12x_moe.py`
+  - SM120-gated correctness test against a BF16 torch MoE reference
 - `vllm/platforms/interface.py`
   - capability helpers, especially exact capability vs capability family
 
@@ -79,7 +85,10 @@ diagnostics and selector-test patch that makes backend decisions reviewable:
 3. Preserve all existing fallback behavior.
 
 Only after a locked runtime repro proves a specific SM120 backend works should a
-second patch add a narrow SM120 eligibility branch for that backend.
+second patch add or change automatic selection for that backend. Current
+upstream already exposes `moe_backend="flashinfer_b12x"` as an explicit NVFP4
+path, so the first runtime question is whether it loads and passes a tiny
+correctness smoke on this hardware/software stack.
 
 ## Alternatives Considered
 
@@ -116,7 +125,6 @@ Confirmed facts:
 
 ## Evidence Missing
 
-- Checked-out upstream source commit under `external/vllm`.
 - Locked one-GPU runtime logs on SM120.
 - Selected backend evidence from a real FP4/MXFP4/NVFP4 model load.
 - Correctness output for deterministic prompts.
@@ -166,7 +174,6 @@ Fallback behavior must remain exactly as upstream currently defines it.
 
 ## Submission Readiness
 
-Not ready for PR. Ready to create an upstream branch only after
-`external/vllm` is checked out at the target commit. A diagnostics-only PR may
-be possible before a large-model repro, but any hardware-eligibility patch needs
-one more locked SM120 experiment.
+Not ready for PR. Ready for a small diagnostics branch in `external/vllm`.
+Any hardware-eligibility or automatic-selection patch still needs one locked
+SM120 runtime experiment.
