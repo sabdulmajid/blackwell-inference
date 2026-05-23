@@ -1,5 +1,66 @@
 # Failed Attempts
 
+## 2026-05-23: meaningful-goal CUDA smoke blocked by another user's process
+
+### Goal
+
+Run the smallest real GPU-affecting CUDA smoke test and produce actual GPU
+evidence without violating the contention policy.
+
+### Planned command
+
+```bash
+python scripts/run_with_gpu_lock.py \
+  --gpus 0 \
+  --min-free-gb 70 \
+  --wait \
+  --poll-seconds 30 \
+  --max-wait-seconds 900 \
+  --label meaningful_goal_torch_cuda_smoke \
+  -- \
+  bash -lc 'python scripts/torch_cuda_smoke.py --out "$BLACKWELL_INFERENCE_GPU_RUN_DIR/torch_cuda_smoke.json" --size 256 --dtype float16'
+```
+
+### Outcome
+
+The CUDA smoke did not start. The wrapper waited for 906.5 seconds and recorded
+a structured `wait_timeout` because physical GPU 0 had an active Python process
+for the entire wait window.
+
+The active process was inspected with `ps` and appeared to belong to another
+user:
+
+```text
+PID 507867 python /3d-data/y2863claude/recipe-research/oracle/run_oracle_sweep.py ...
+```
+
+No process was killed, suspended, reniced, or otherwise disturbed.
+
+Evidence:
+
+- Plan: `results/plans/meaningful_goal_gpu_smoke_plan.md`
+- Start status: `results/gpu_status/meaningful_goal_start_status.json`
+- GPU 0 check: `results/gpu_status/meaningful_goal_gpu0_check.json`
+- GPU 1 check: `results/gpu_status/meaningful_goal_gpu1_check.json`
+- Wait-timeout artifact:
+  `results/gpu_runs/20260523T153219Z_meaningful_goal_torch_cuda_smoke/run_meta.json`
+- Final status: `results/gpu_status/meaningful_goal_final_status.json`
+
+### Classification
+
+`blocked: gpu contention`
+
+### Next action
+
+Retry the same command only after:
+
+```bash
+python scripts/gpu_guard.py check --gpus 0 --min-free-gb 70
+```
+
+returns eligible. If GPU 1 becomes eligible first, update the plan to target
+GPU 1 and record the selection rationale.
+
 ## 2026-05-23: impact pass stayed source-only because GPUs were active
 
 ### Goal

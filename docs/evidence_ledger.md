@@ -4,6 +4,8 @@ Audit timestamp: `2026-05-20T10:31:55Z`
 
 Latest source-audit update: `2026-05-23T15:04Z`
 
+Latest meaningful-goal update: `2026-05-23T15:47Z`
+
 Scope: post-queue audit after first-pass setup, controlled smoke, real-GPU smoke
 attempt, vLLM deep dive, SGLang deep dive, and benchmark-matrix ramp-up. No
 new GPU-heavy workload, model download, server launch, or two-GPU command was
@@ -35,6 +37,31 @@ Still not proven:
 - any real vLLM or SGLang backend selected on this machine;
 - any correctness, latency, throughput, speedup, or regression;
 - whether current upstream already resolves the original runtime issue.
+
+## 2026-05-23 Meaningful-Goal GPU Attempt
+
+This update attempted to run the smallest real CUDA smoke test behind the GPU
+lock wrapper. The command did not initialize CUDA because GPU 0 remained
+occupied by another user's Python process for the full bounded wait.
+
+| Artifact | Type | Command / source | Framework | GPU IDs | Validity | Supports | Does not support |
+|---|---|---|---|---|---|---|---|
+| `results/plans/meaningful_goal_gpu_smoke_plan.md` | plan | manual plan | harness | GPU 0 planned | valid plan | Exact locked command and validity rules for the smoke attempt | Runtime success |
+| `results/gpu_status/meaningful_goal_start_status.json` | gpu-status | `python scripts/gpu_guard.py status --out ...` | harness | none | contended status evidence | Both GPUs had active PID `507867` before the attempt | Permission to benchmark |
+| `results/gpu_status/meaningful_goal_gpu0_check.json` | gpu-status | `python scripts/gpu_guard.py check --gpus 0 --min-free-gb 70 --out ...` | harness | GPU 0 | contended/invalid | GPU 0 was blocked by active PID `507867` | Valid GPU run |
+| `results/gpu_status/meaningful_goal_gpu1_check.json` | gpu-status | `python scripts/gpu_guard.py check --gpus 1 --min-free-gb 70 --out ...` | harness | GPU 1 | contended/invalid | GPU 1 was blocked by active PID `507867` | Valid GPU run |
+| `results/gpu_runs/20260523T153219Z_meaningful_goal_torch_cuda_smoke/run_meta.json` | gpu-run | locked wrapper around `scripts/torch_cuda_smoke.py` | harness | GPU 0 | wait_timeout / invalid_contended | Wrapper waited 906.5 seconds and refused to run into another user's active process | CUDA smoke success, benchmark result, correctness |
+| `results/gpu_status/meaningful_goal_final_status.json` | gpu-status | `python scripts/gpu_guard.py status --out ...` | harness | none | contended status evidence | Active PID `507867` persisted after the wait | Permission to benchmark |
+
+New claim proven:
+
+- The project correctly refused to create a contended "actual benchmark" while
+  another user's process occupied the target GPU.
+
+Still not proven:
+
+- Any new CUDA kernel, model load, serving benchmark, or framework backend
+  selection from this pass.
 
 ## Required Audit Commands
 
@@ -148,6 +175,7 @@ Still not proven:
 | Current benchmark summaries do not treat dry runs as headline evidence. | `results/benchmarks/summary.csv`, `results/benchmarks/summary.md` |
 | SGLang is not installed in the current Python environment. | `results/env/sglang_deep_dive_verify_blackwell.json`, `results/env/benchmark_matrix_verify_blackwell.json` |
 | Current audit-time GPU state is contended and below the 70 GiB threshold on both GPUs. | `results/gpu_status/post_queue_audit_status.json` |
+| The meaningful-goal CUDA smoke was blocked rather than run under contention. | `results/gpu_runs/20260523T153219Z_meaningful_goal_torch_cuda_smoke/run_meta.json` |
 | Current lightweight test suite passes. | `results/tests/post_queue_audit_pytest.txt` |
 | Patch-discipline updates did not break local lightweight tests. | `results/tests/upstream_patch_discipline_pytest.txt` |
 | Reproducibility state is now documented and checkable without CUDA initialization. | `docs/reproducibility.md`, `docs/dependency_matrix.md`, `docs/model_access_plan.md`, `results/env/versions.json`, `results/env/reproducibility_check.json` |

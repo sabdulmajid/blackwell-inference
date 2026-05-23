@@ -18,7 +18,7 @@ Legend:
 | Record missing `.codex/` config | DONE | `.codex/config.toml` and `.codex/agents/*.toml` are absent in this checkout; not required for harness execution. |
 | Create initial git checkpoint | DONE | Public scaffold committed and pushed to `origin/main` at `c55174365f7ce689418f2dbf77849657d76c7470`. |
 | Run `verify_blackwell.py` | DONE | Latest controlled smoke artifact: `results/env/verify_blackwell.json`. Default mode is metadata-only; PyTorch CUDA probing is skipped unless `--probe-cuda` runs under the GPU lock wrapper. |
-| Run `gpu_guard.py status` | DONE | Latest impact-pass artifact: `results/gpu_status/impact_resume_status.json`; both GPUs had an active Python process, so no new GPU runtime repro was launched. |
+| Run `gpu_guard.py status` | DONE | Latest meaningful-goal artifact: `results/gpu_status/meaningful_goal_final_status.json`; both GPUs had another user's active Python process PID `507867`, so no valid GPU runtime repro was launched. |
 | Confirm GPU lock wrapper works with `sleep 5` | DONE | `results/gpu_runs/20260520T091452Z_first_pass_lock_sleep/run_meta.json`; non-GPU sleep command completed and was marked `invalid_contended` because GPU 0 had an existing process. |
 
 ## 1. vLLM SM120 FP4/MXFP4/NVFP4
@@ -29,7 +29,7 @@ Legend:
 | Record vLLM commit | DONE | Current inspected source commit: `5bb8d2767a2829b56e58c68fa8f380e9e4e2bd3e`. Installed wheel is vLLM `0.12.0` and may differ materially from source HEAD. |
 | Map backend-selection codepaths | DONE | `docs/vllm_sm120_backend_selection.md` and `docs/current_upstream_source_audit.md`; current source map includes `oracle/nvfp4.py`, `oracle/mxfp4.py`, `experts/flashinfer_b12x_moe.py`, `experts/trtllm_mxfp4_moe.py`, `flashinfer_utils.py`, `marlin_utils.py`, and `tests/kernels/moe/test_flashinfer_b12x_moe.py`. |
 | Write minimal repro script | DOING | `repros/vllm_mxfp4_sm120/run_repro.sh` is parameterized, refuses unlocked GPU launches, supports `--quantization` and `--dry-run`, captures env metadata, and now writes `backend_summary.json` from backend logs. Dry-run command: `results/repros/vllm_mxfp4_sm120/20260520T100045Z/command.txt`. |
-| Run small smoke model | BLOCKED | No vLLM GPU run launched. Latest benchmark-matrix checks show active PID `2999453` on both GPUs and both GPUs below the required 70 GiB threshold: `results/gpu_status/benchmark_matrix_pre_status.json`, `results/gpu_status/benchmark_matrix_gpu0_check.json`, `results/gpu_status/benchmark_matrix_gpu1_check.json`. |
+| Run small smoke model | BLOCKED | No vLLM GPU run launched. Latest meaningful-goal checks show another user's active PID `507867` on both GPUs: `results/gpu_status/meaningful_goal_start_status.json`, `results/gpu_status/meaningful_goal_gpu0_check.json`, `results/gpu_status/meaningful_goal_gpu1_check.json`. |
 | Run target low-precision repro | TODO |  |
 | Capture selected backend logs | DOING | Future real repros will write `backend_grep.txt` and `backend_summary.json`. Static selector evidence saved at `results/repros/vllm_mxfp4_sm120/static_backend_selection_probe.json`. |
 | Add correctness check | TODO |  |
@@ -63,7 +63,7 @@ Legend:
 | Add environment metadata | DOING | Benchmark metadata records command, repo commit if available, framework, model, dtype/quantization/backend, GPU lock env, and optional verifier metadata. |
 | Add contention detection | DOING | `scripts/run_with_gpu_lock.py` writes before/after GPU snapshots, target process lists, `contention_label`, and `contended`. It supports `--max-wait-seconds`, records `wait_timeout` metadata for blocked smoke attempts, and now gives non-wait `not_eligible` records the same validity fields. Benchmark summaries mark dry runs/non-wrapper runs as non-headline evidence. |
 | Add validation checks | DONE | Added argument validation, zero-token invalidation, first-content TTFT, usage-token parsing, dry-run status, raw/summary cross-checking, GPU before/after summarization from wrapper metadata, low-sample validation flags, and `headline_eligible` summary output. |
-| Run 1-GPU benchmark | BLOCKED | Real serving benchmarks were not launched because latest checks showed active PID `2999453` on both GPUs and free memory below 70 GiB. Evidence: `results/gpu_status/benchmark_matrix_pre_status.json`, `results/gpu_status/benchmark_matrix_gpu0_check.json`, `results/gpu_status/benchmark_matrix_gpu1_check.json`, `docs/benchmark_matrix.md`, `docs/failed_attempts.md`. |
+| Run 1-GPU benchmark | BLOCKED | Real serving benchmarks were not launched because latest checks showed another user's active PID `507867` on both GPUs. A bounded locked CUDA smoke waited 906.5 seconds and timed out without running: `results/gpu_runs/20260523T153219Z_meaningful_goal_torch_cuda_smoke/run_meta.json`. |
 | Run 2-GPU benchmark | TODO |  |
 
 ## 4. Final artifacts
@@ -102,3 +102,4 @@ Legend:
 | Run reproducibility check | DONE | `results/env/reproducibility_check.json`; status `ok` with documented warnings for missing optional/dev packages, non-repo current venv, absent repo-local `.venv`, and optional framework gaps. |
 | Run reproducibility tests | DONE | `results/tests/reproducibility_pytest.txt`; `29 passed, 1 skipped in 0.77s`. The skipped test is an optional vLLM import/static-probe test gated by `BLACKWELL_INFERENCE_RUN_OPTIONAL_IMPORT_TESTS=1`. |
 | Run impact source-audit tests | DONE | `results/tests/impact_source_audit_pytest.txt`; `29 passed, 1 skipped in 0.77s`. |
+| Run meaningful-goal tests | DONE | `results/tests/meaningful_goal_pytest.txt`; lightweight tests pass after documenting the blocked GPU smoke. |

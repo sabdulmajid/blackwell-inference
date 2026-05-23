@@ -26,10 +26,16 @@ Current upstream source audit: `docs/current_upstream_source_audit.md`.
 - `results/gpu_status/benchmark_matrix_final_status.json`
 - `results/gpu_status/post_queue_audit_status.json`
 - `results/gpu_status/impact_resume_status.json`
+- `results/gpu_status/meaningful_goal_start_status.json`
+- `results/gpu_status/meaningful_goal_gpu0_check.json`
+- `results/gpu_status/meaningful_goal_gpu1_check.json`
+- `results/gpu_status/meaningful_goal_final_status.json`
 - `results/gpu_runs/20260520T100750Z_sglang_device_probe/`
+- `results/gpu_runs/20260523T153219Z_meaningful_goal_torch_cuda_smoke/`
 
-Latest impact-pass status: both GPUs had active Python work. No real serving
-benchmark or runtime repro was launched in that state.
+Latest meaningful-goal status: both GPUs had another user's active Python
+process PID `507867`. A locked CUDA smoke waited 906.5 seconds and timed out
+without initializing CUDA, so no real benchmark or runtime repro was produced.
 
 ## Benchmarks
 
@@ -48,9 +54,10 @@ All current benchmark rows are dry runs and are not headline-eligible.
 - `results/tests/upstream_patch_discipline_pytest.txt`
 - `results/tests/reproducibility_pytest.txt`
 - `results/tests/impact_source_audit_pytest.txt`
+- `results/tests/meaningful_goal_pytest.txt`
 
 Latest lightweight test result: `29 passed, 1 skipped in 0.77s` from
-`results/tests/impact_source_audit_pytest.txt`.
+`results/tests/meaningful_goal_pytest.txt`.
 
 Latest reproducibility check: `results/env/reproducibility_check.json`, status
 `ok` with 7 documented warnings for optional/framework gaps and non-repo current
